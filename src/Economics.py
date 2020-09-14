@@ -80,7 +80,7 @@ class CashFlowUser:
   def get_state_cost(self, activity, meta):
     """
       get the cost given particular activities (state) of the cash flow user
-      @ In, raven_vars, dict, additional variables (presumably from raven) that might be needed
+      @ In, activity, dict, by-resource activity for this component as {resource: usage}
       @ In, meta, dict, further dictionary of information that might be needed
       @ Out, cost, dict, cost of activity as a breakdown
     """
@@ -181,7 +181,7 @@ class CashFlowGroup:
   def evaluate_cfs(self, activity, meta):
     """
       Calculates the incremental cost of a particular system configuration.
-      @ In, activity, XArray.DataArray, array of driver-centric variable values
+      @ In, activity, dict, dict of driver-centric variable values as {resource: usage}
       @ In, meta, dict, additional user-defined meta
       @ Out, cost, dict, cash flow evaluations
     """
@@ -470,7 +470,7 @@ class CashFlow:
   def evaluate_cost(self, activity, values_dict):
     """
       Evaluates cost of a particular scenario provided by "activity".
-      @ In, activity, pandas.Series, multi-indexed array of scenario activities
+      @ In, activity, dict, {resource: usage} for resources used by this component
       @ In, values_dict, dict, additional values that may be needed to evaluate cost
       @ In, t, int, time index at which cost should be evaluated
       @ Out, cost, float, cost of activity

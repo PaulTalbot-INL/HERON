@@ -8,12 +8,20 @@ from __future__ import unicode_literals, print_function
 import os
 import sys
 import abc
-from base import Base
+
+import cloudpickle as pk
 from scipy import interpolate
+
+from base import Base
 import _utils as hutils
+
 framework_path = hutils.get_raven_loc()
-sys.path.append(framework_path)
+if framework_path not in sys.path:
+  sys.path.append(framework_path)
 from utils import InputData, utils, InputTypes
+import Driver # TODO I don't like this, but required to unpickle ARMA
+from SupervisedLearning import ROMCollection
+from SupervisedLearning import ARMA as RavenARMA
 
 class Placeholder(Base):
   """
@@ -54,8 +62,11 @@ class Placeholder(Base):
     specs.parseNode(xml)
     self.name = specs.parameterValues['name']
     self._source = specs.value
-    # check source exists
+    # TODO check source exists
     self._target_file = os.path.abspath(self._source)
+    if not os.path.isfile(self._target_file):
+      self.raiseAnError(IOError, 'Requested source file not found for DataGenerator "{n}": "{p}"'
+                        .format(n=self.name, p=self._target_file))
     return specs
 
   def print_me(self, tabs=0, tab='  '):
@@ -123,6 +134,8 @@ class ARMA(Placeholder):
     """
     Placeholder.__init__(self, **kwargs)
     self._type = 'ARMA'
+    self.interpolated = None
+    self.clustered = None
 
   def read_input(self, xml):
     """
@@ -132,7 +145,34 @@ class ARMA(Placeholder):
     """
     specs = Placeholder.read_input(self, xml)
     self._var_names = specs.parameterValues['variable']
-    # check that the source ARMA exists
+    # Check on the structure of the ARMA
+    with open(self._target_file, 'rb') as f:
+      #       model   .    gate        .      rom list
+      try:
+        rom = pk.load(f).supervisedEngine.supervisedContainer[0]
+      except AttributeError as e:
+        self.raiseAnError(IOError, 'Provided ARMA "{p}" does not have the expected structure; '.format(p=self._target_file) +
+                          'is it a trained RAVEN ARMA? Error raised is:', e)
+    # END with open
+    if isinstance(rom, ROMCollection.Interpolated):
+      # this ARMA is clustered and interpolated
+      # NOTE that interpolated can ONLY be clustered, currently in RAVEN
+      self.interpolated = True
+      self.clustered = True
+      print('DEBUGG interpolated:', rom)
+    elif isinstance(rom, ROMCollection.Clusters):
+      # this ARMA is clustered, not interpolated
+      self.interpolated = False
+      self.clustered = True
+      print('DEBUGG clustered:', rom)
+    elif isinstance(rom, RavenARMA):
+      # this ARMA is neither clustered nor interpolated
+      self.interpolated = False
+      self.clustered = False
+      print('DEBUGG plain ARMA:', rom)
+    else:
+      self.raiseAnError(IOError, 'Provided ARMA "{p}" does not have a recognized type; '.format(p=self._target_file) +
+                        'is it a trained RAVEN ARMA? Type found:', rom)
 
   def interpolation(self, x, y):
     """

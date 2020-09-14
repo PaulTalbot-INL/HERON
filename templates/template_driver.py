@@ -373,7 +373,9 @@ class Template(TemplateBase):
         # add a step to load the model
         self._iostep_load_rom(template, case, components, source)
         # add a step to print the rom meta
-        self._iostep_rom_meta(template, source)
+        self._iostep_rom_meta(template, source) # needed for DispatchManager to figure structure out
+        # update variable groups depending on structure of ARMA
+        self._update_vargroups(template, source) # TODO all ARMAs have to be consistent?
         # add the source to the arma-and-dispatch ensemble
         self._add_arma_to_ensemble(template, source)
         # NOTE assuming input to all ARMAs is "scaling" constant = 1.0, already in MonteCarlo sampler
@@ -441,24 +443,26 @@ class Template(TemplateBase):
       @ In, sources, list, list of HERON Placeholder instances for this run
       @ Out, template, xml.etree.ElementTree.Element, modified template
     """
-    self._modify_cash_Global(template, case)
+    self._modify_cash_Global(template, case, components)
     self._modify_cash_components(template, case, components)
     return template
 
-  def _modify_cash_Global(self, template, case):
+  def _modify_cash_Global(self, template, case, components):
     """
       Defines modifications to Global of cash.xml extension to RAVEN input file.
       @ In, template, xml.etree.ElementTree.Element, root of XML to modify
       @ In, case, HERON Case, defining Case instance
+      @ In, components, list, list of HERON Component instances for this run
       @ Out, None
     """
     # load variables
-    tax = case._global_econ['tax']
-    verbosity = case._global_econ['verbosity']
-    inflation = case._global_econ['inflation']
-    indicator = case._global_econ['Indicator']
-    discountRate = case._global_econ['DiscountRate']
-    projectTime = case._global_econ.get('ProjectTime', None)
+    econ = case.get_econ(components)
+    tax = econ['tax']
+    verbosity = econ['verbosity']
+    inflation = econ['inflation']
+    indicator = econ['Indicator']
+    discountRate = econ['DiscountRate']
+    projectTime = econ.get('ProjectTime', None)
     # set variables
     template.attrib['verbosity'] = str(verbosity)
     cash_global = template.find('Global')
@@ -547,11 +551,13 @@ class Template(TemplateBase):
     ens.append(new_model)
 
     # create the data objects
+    macro_name = 'Year' if source.interpolated else 'Cycle' # TODO why this insanity
     self._create_dataobject(data_objs, 'PointSet', inp_name, inputs=['scaling'])
     self._create_dataobject(data_objs, 'DataSet', eval_name,
                             inputs=['scaling'],
                             outputs=out_vars,
-                            depends={'Time': out_vars, 'Year': out_vars}) # TODO user-defined?
+                            # we have Time and Year/Cycle regardless of the ARMA structure
+                            depends={'Time': out_vars, macro_name: out_vars}) # TODO user-defined "Time" var?
 
     # add variables to dispatch input requirements
     ## before all else fails, use variable groups
@@ -619,22 +625,22 @@ class Template(TemplateBase):
     self._updateCommaSeperatedList(template.find('RunInfo').find('Sequence'), new_step.attrib['name'], position=0)
     # add the model
     model = xmlUtils.newNode('ROM', attrib={'name':rom_name, 'subType':'pickledROM'})
-    ## update the ARMA model to sample a number of years equal to the ProjectLife from CashFlow
-    #comp_lifes = list(comp.get_economics().get_lifetime() for comp in components)
-    #req_proj_life = case.get_econ().get('ProjectLife', None)
     econ_comps = list(comp.get_economics() for comp in components)
     econ_global_params = case.get_econ(econ_comps)
     econ_global_settings = CashFlows.GlobalSettings()
     econ_global_settings.setParams(econ_global_params)
-    #project_life = getProjectLength(econ_global_settings, econ_comps) - 1 # skip construction year
-    #multiyear = xmlUtils.newNode('Multiyear')
-    #multiyear.append(xmlUtils.newNode('years', text=project_life))
-    # TODO FIXME XXX growth param ????
-    #model.append(multiyear)
+    # if the ARMA is NOT interpolated, update to sample a number of years equal to ProjectLife
+    if not source.interpolated:
+      project_life = getProjectLength(econ_global_settings, econ_comps) - 1 # skip construction year
+      multiyear = xmlUtils.newNode('Multicycle')
+      multiyear.append(xmlUtils.newNode('cycles', text=project_life))
+      # TODO growth params ????
+      model.append(multiyear)
     template.find('Models').append(model)
     # add a file
     ## NOTE: the '..' assumes there is a working dir that is not ".", which should always be true.
     template.find('Files').append(xmlUtils.newNode('Input', attrib={'name':rom_source}, text='../../'+rom_source))
+    # update DataObjects based on structure of source
     # done
 
   def _iostep_rom_meta(self, template, source):
@@ -664,3 +670,38 @@ class Template(TemplateBase):
     new_step.append(self._assemblerNode('Output', 'OutStreams', 'Print', os_name))
     template.find('Steps').append(new_step)
     self._updateCommaSeperatedList(template.find('RunInfo').find('Sequence'), step_name, position=1)
+
+  def _update_vargroups(self, template, source):
+    """
+      for INNER, create an IOStep for printing the ROM meta
+      @ In, template, xml.etree.ElementTree.Element, root of XML to modify
+      @ In, source, HERON Placeholder, instance to update vargroups for source
+      @ Out, None
+    """
+    vgs = template.find('VariableGroups')
+    macro_name = 'Year' if source.interpolated else 'Cycle'
+    for node in vgs:
+      if node.attrib['name'] == 'GRO_dispatch':
+        # do we need ClusterTime and Cluster?
+        if source.clustered:
+          # add it if it's missing
+          if 'Cluster' not in node.text:
+            self._updateCommaSeperatedList(node, 'Cluster')
+            self._updateCommaSeperatedList(node, 'ClusterTime')
+        else:
+          # remove it if it's there
+          if 'Cluster' in node.text:
+            entries = list(x.strip() for x in node.text.split(','))
+            entries.remove('Cluster')
+            entries.remove('ClusterTime')
+            node.text = ', '.join(entries)
+        # set correct macro parameter (Year/Cycle)
+        if macro_name not in node.text:
+          self._updateCommaSeperatedList(node, macro_name)
+        break
+    # also update DataObjects with correct macro name for dependencies
+    do_base = template.find('DataObjects')
+    for ob in do_base.findall('DataSet'):
+      for indx in ob.findall('Index'):
+        if indx.attrib['var'] == 'MACRO':
+          indx.attrib['var'] = macro_name

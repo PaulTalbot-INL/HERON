@@ -103,8 +103,9 @@ class DispatchRunner:
     # component capacities
     for comp in self._components:
       name = self.naming_template['comp capacity'].format(comp=comp.name)
-      update_capacity = raven_dict.get(name) # TODO is this ever not provided?
-      comp.set_capacity(update_capacity)
+      update_capacity = raven_dict.get(name, None) # TODO is this ever not provided?
+      if update_capacity is not None:
+        comp.set_capacity(update_capacity)
     # TODO other case, component properties
     # load ARMA signals
     for source in self._sources:
@@ -531,6 +532,7 @@ class DispatchRunner:
     # TODO check consistency between ROMs?
     # for now, just summarize what we found -> take it from the first source
     summary_info = next(iter(all_structure['details'].values()))
+    print('DEBUGG info:', summary_info)
     interpolated = (summary_info['macro']['first'], summary_info['macro']['last'] + 1) if 'macro' in summary_info else (0, 1)
     # further, also take cluster structure from the first year only
     first_year_clusters = next(iter(summary_info['clusters'].values())) if 'clusters' in summary_info else {}
@@ -538,7 +540,7 @@ class DispatchRunner:
     all_structure['summary'] = {'interpolated': interpolated,
                                 'clusters': clusters,
                                 'segments': 0, # FIXME XXX
-                                'macro_info': summary_info['macro'],
+                                #'macro_info': summary_info['macro'],
                                 'cluster_info': first_year_clusters,
                                 }
                                 # TODO need to add index/representivity references!

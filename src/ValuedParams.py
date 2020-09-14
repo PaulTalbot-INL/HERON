@@ -42,7 +42,7 @@ class ValuedParam:
     # for when the value is parametric (only in "sweep" mode)
     spec.addSub(InputData.parameterInputFactory('sweep_values', contentType=InputTypes.FloatListType,
         descr=r"""indicates this value is parametric. The value of this node should contain
-              two floats, representing the minimum and maximum values to sweep between."""))
+              comma-separated floats, representing the values to sweep along."""))
     # for when the value is optimized (only in "min" or "max" mode)
     spec.addSub(InputData.parameterInputFactory('opt_bounds', contentType=InputTypes.FloatListType,
         descr=r"""indicates this value is an optimization variable. The optimization limits should
@@ -53,7 +53,7 @@ class ValuedParam:
               which will be provided to the dispatch at run time by RAVEN from trained models. The value
               of this node should be the name of a synthetic history generator in the
               \xmlNode{DataGenerator} node.""")
-    arma.addParam('variable', param_type=InputTypes.StringType,
+    arma.addParam('variable', param_type=InputTypes.StringType, required=True,
         descr=r"""indicates which variable coming from the synthetic histories this value should be taken from.""")
     spec.addSub(arma)
     # for when the value comes from evaluating a function

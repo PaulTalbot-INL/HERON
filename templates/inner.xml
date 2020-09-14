@@ -28,7 +28,7 @@
   </Steps>
 
   <VariableGroups>
-    <Group name='GRO_dispatch'           >GRO_dispatch_in, GRO_dispatch_out, Time, ClusterTime, Year, Cluster</Group>
+    <Group name='GRO_dispatch'           >GRO_dispatch_in, GRO_dispatch_out, Time</Group>
     <Group name='GRO_dispatch_in'        >GRO_dispatch_in_scalar, GRO_dispatch_in_Time</Group>
     <Group name='GRO_dispatch_out'       >GRO_dispatch_out_Time</Group>
     <Group name='GRO_dispatch_in_scalar' >GRO_capacities, scaling</Group>
@@ -71,7 +71,7 @@
       <Input>GRO_armasamples_in</Input>
       <Output>GRO_armasamples_out</Output>
       <!-- <Index var="ClusterTime">GRO_armasamples_out_Time</Index>
-      <Index var="Year">GRO_armasamples_out_Time</Index>
+      <Index var="MACRO">GRO_armasamples_out_Time</Index>
       <Index var="Cluster">GRO_armasamples_out_Time</Index> -->
     </DataSet>
     <PointSet name="arma_metrics">
@@ -83,7 +83,7 @@
     <DataSet name="disp_avg">
       <Output>GRO_means</Output>
       <Index var="Time">GRO_means</Index>
-      <Index var="Year">GRO_means</Index>
+      <Index var="MACRO">GRO_means</Index>
     </DataSet>
     <!-- Ensemble Model Target Evaluations -->
     <!--     ARMA preprocessing ensemble -->
@@ -92,8 +92,8 @@
       <!-- <Output>GRO_dispatch_out</Output> -->
       <Index var="Time">GRO_dispatch_in_Time</Index>
       <!-- <Index var="ClusterTime">GRO_dispatch_out_Time</Index> -->
-      <Index var="Year">GRO_dispatch_in_Time</Index>
-      <!-- <Index var="Year">GRO_dispatch_in_Time, GRO_dispatch_out_Time</Index> -->
+      <Index var="MACRO">GRO_dispatch_in_Time</Index>
+      <!-- <Index var="MACRO">GRO_dispatch_in_Time, GRO_dispatch_out_Time</Index> -->
       <!-- <Index var="Cluster">GRO_dispatch_out_Time</Index> -->
     </DataSet>
 

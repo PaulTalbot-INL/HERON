@@ -1,0 +1,100 @@
+<HERON>
+  <TestInfo>
+    <name>SetCapacities</name>
+    <author>talbpaul</author>
+    <created>2020-09-08</created>
+    <description>
+      Tests setting capacities all the ways we can.
+    </description>
+    <classesTested>HERON</classesTested>
+  </TestInfo>
+
+  <Case name="Run">
+    <num_arma_samples>3</num_arma_samples>
+    <time_discretization>
+      <time_variable>Time</time_variable>
+      <end_time>2</end_time>
+      <num_steps>21</num_steps>
+    </time_discretization>
+    <economics>
+      <ProjectTime>3</ProjectTime>
+      <DiscountRate>0.08</DiscountRate>
+      <tax>0.0</tax>
+      <inflation>0.0</inflation>
+      <verbosity>50</verbosity>
+    </economics>
+    <dispatcher>
+      <type>pyomo</type>
+    </dispatcher>
+  </Case>
+
+  <Components>
+    <Component name="fixed_source">
+      <produces resource="widgets" dispatch="fixed">
+        <capacity resource="widgets">
+          <fixed_value>1000</fixed_value>
+        </capacity>
+      </produces>
+      <economics>
+        <lifetime>5</lifetime>
+      </economics>
+    </Component>
+
+    <Component name="mixed_ARMA">
+      <demands resource="widgets" dispatch="fixed">
+        <capacity>
+          <ARMA variable='Sine'>mixed_arma</ARMA>
+        </capacity>
+      </demands>
+      <economics>
+        <lifetime>5</lifetime>
+      </economics>
+    </Component>
+
+    <Component name="sink_fixed">
+      <demands resource="widgets" dispatch="dependent">
+        <capacity>
+          <fixed_value>-10000</fixed_value>
+        </capacity>
+      </demands>
+      <economics>
+        <lifetime>5</lifetime>
+        <CashFlow name="sales" type="repeating" taxable='True' inflation='none' mult_target='False'>
+          <driver>
+            <Function method="consume">funcs</Function>
+          </driver>
+          <reference_price>
+            <fixed_value>1</fixed_value>
+          </reference_price>
+        </CashFlow>
+      </economics>
+    </Component>
+
+    <Component name="sink_sweep">
+      <demands resource="widgets" dispatch="dependent"><!---->
+        <capacity>
+          <sweep_values>-1, -2</sweep_values>
+        </capacity>
+      </demands>
+      <economics>
+        <lifetime>5</lifetime>
+        <CashFlow name="sales" type="repeating" taxable='True' inflation='none' mult_target='False'>
+          <driver>
+            <Function method="consume">funcs</Function>
+          </driver>
+          <reference_price>
+            <fixed_value>2</fixed_value>
+          </reference_price>
+        </CashFlow>
+      </economics>
+    </Component>
+
+  </Components>
+
+
+  <DataGenerators>
+    <ARMA name='mixed_arma' variable="Sine">../ARMA/MixedSine/arma.pk</ARMA>
+    <Function name="funcs">functions.py</Function>
+  </DataGenerators>
+
+</HERON>
