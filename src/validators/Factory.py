@@ -2,9 +2,11 @@
 # ALL RIGHTS RESERVED
 
 from .ExampleValidator import Example
+from .RefGovValidator import RefGov
 
 known = {
     'Example': Example,
+    'RefGov': RefGov,
     # ModelicaGoverner: TODO,
 }
 
