@@ -50,7 +50,7 @@
   <DataObjects>
     <PointSet name="placeholder"/>
     <HistorySet name="input">
-      <Input>scaling</Input>
+      <Input>scaling, Year</Input>
       <Output>Sine, Time</Output>
       <options>
         <pivotParameter>Time</pivotParameter>
@@ -60,6 +60,7 @@
       <Input>scaling</Input>
       <Output>Sine</Output>
       <Index var="Time">Sine</Index>
+      <Index var="Year">Sine</Index>
     </DataSet>
     <DataSet name="meta"/>
   </DataObjects>
@@ -72,11 +73,11 @@
       <P>0</P>
       <Q>0</Q>
       <Fourier>10</Fourier>
-      <!-- <Segment grouping='interpolate'>
+      <Segment grouping='interpolate'>
         <macroParameter>Year</macroParameter>
         <Classifier class='Models' type='PostProcessor'>classifier</Classifier>
         <subspace divisions='1'>Time</subspace>
-      </Segment> -->
+      </Segment>
       <reseedCopies>False</reseedCopies>
       <seed>42</seed>
     </ROM>
