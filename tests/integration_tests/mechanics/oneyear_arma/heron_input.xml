@@ -1,0 +1,70 @@
+<HERON>
+  <TestInfo>
+    <name>OneYearARMA</name>
+    <author>talbpaul</author>
+    <created>2021-04-28</created>
+    <description>
+      Simple test focused on using an ARMA that is not "interpolated" but only trained on one
+      year of data.
+    </description>
+    <classesTested>HERON</classesTested>
+  </TestInfo>
+
+  <Case name="Sweep_Runs">
+    <mode>sweep</mode>
+    <num_arma_samples>2</num_arma_samples>
+    <time_discretization>
+      <end_time>2</end_time>
+      <num_steps>21</num_steps>
+    </time_discretization>
+    <economics>
+      <ProjectTime>2</ProjectTime>
+      <DiscountRate>0.08</DiscountRate>
+      <tax>0.0</tax>
+      <inflation>0.0</inflation>
+      <verbosity>50</verbosity>
+    </economics>
+    <dispatcher>
+      <pyomo/>
+    </dispatcher>
+  </Case>
+
+  <Components>
+    <Component name="producer">
+      <produces resource="widgets" dispatch="fixed">
+        <capacity resource="widgets">
+          <ARMA variable='Signal'>Production</ARMA>
+        </capacity>
+      </produces>
+      <economics>
+        <lifetime>2</lifetime>
+      </economics>
+    </Component>
+
+    <Component name="consumer">
+      <demands resource="widgets" dispatch="dependent">
+        <capacity>
+          <sweep_values>-1, -2</sweep_values>
+        </capacity>
+      </demands>
+      <economics>
+        <lifetime>2</lifetime>
+        <CashFlow name="e_sales" type="repeating" taxable='True' inflation='none' mult_target='False'>
+          <driver>
+            <Function method="consume">transfers</Function>
+          </driver>
+          <reference_price>
+            <fixed_value>1</fixed_value>
+          </reference_price>
+        </CashFlow>
+      </economics>
+    </Component>
+
+  </Components>
+
+  <DataGenerators>
+    <ARMA name='Production' variable="Signal">%HERON%/tests/integration_tests/ARMA/SineOneYear/arma_oneyear.pk</ARMA>
+    <Function name="transfers">transfers.py</Function>
+  </DataGenerators>
+
+</HERON>
