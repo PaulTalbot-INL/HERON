@@ -9,13 +9,9 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-import _utils as hutils
-
-framework_path = hutils.get_raven_loc()
-sys.path.append(framework_path)
 from PluginBaseClasses.OutStreamPlotPlugin import PlotPlugin, InputTypes, InputData
 
-class Dispatch(PlotPlugin):
+class DispatchPlot(PlotPlugin):
 
   @classmethod
   def getInputSpecification(cls):
@@ -25,7 +21,7 @@ class Dispatch(PlotPlugin):
       @ Out, specs, InputData.ParameterInput,
     """
     specs = super().getInputSpecification()
-    specs.addSub(InputData.parameterInputFactory('variables', contentType=InputTypes.StringListType))
+    # specs.addSub(InputData.parameterInputFactory('variables', contentType=InputTypes.StringListType))
     specs.addSub(InputData.parameterInputFactory('source', contentType=InputTypes.StringType))
     return specs
 
@@ -36,8 +32,8 @@ class Dispatch(PlotPlugin):
       @ Out, None
     """
     super().__init__()
-    self.printTag = 'HERON.Dispatch'
-    self._vars = None
+    self.printTag = 'HERON.DispatchPlot'
+    # self._vars = None
     self._sourceName = None
     self._source = None
 
@@ -46,17 +42,22 @@ class Dispatch(PlotPlugin):
     """
     super().handleInput(spec)
     for node in spec.subparts:
-      if node.getName() == 'variables':
-        self._vars = node.value
-      elif node.getName() == 'source':
+      # if node.getName() == 'variables':
+      #   self._vars = node.value
+      if node.getName() == 'source':
         self._sourceName = node.value
 
-  def initialize(self):
+  def initialize(self, stepEntities):
     """
     """
-    pass
+    super().initialize(stepEntities)
+    src = self.findSource(self._sourceName, stepEntities)
+    if src is None:
+      self.raiseAnError(IOError, f'Source DataObject {self._sourceName} was not found in the Step!')
+    self._source = src
+
 
   def run(self):
     """
     """
-    pass
+    print("I'm done")
