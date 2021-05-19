@@ -12,6 +12,21 @@ import matplotlib.pyplot as plt
 
 from PluginBaseClasses.OutStreamPlotPlugin import PlotPlugin, InputTypes, InputData
 
+# Matplotlib Global Settings
+plt.rc("figure", figsize=(12, 8), titleweight='bold')
+plt.rc(
+    "axes",
+#     titlesize=25,
+    titleweight="bold",
+    labelsize=12,
+    axisbelow=True,
+    grid=True
+)
+plt.rc("savefig", bbox="tight")
+plt.rc("legend", fontsize=12)
+plt.rc(["xtick", "ytick"], labelsize=10)
+
+
 class DispatchPlot(PlotPlugin):
 
   @classmethod
@@ -53,23 +68,28 @@ class DispatchPlot(PlotPlugin):
       self.raiseAnError(IOError, f'Source DataObject {self._sourceName} was not found in the Step!')
     self._source = src
 
+  def _dispatch_electro(dat, ax):
+    """
+    """
+    pass
+
+  def _dispatch_hydro(dat, ax):
+    """
+    """
+    pass
+
+  def _dispatch_storage(dat, ax):
+    """
+    """
+    pass
+
 
   def run(self):
     """
     """
-
     idx = pd.IndexSlice
     data = self._source.asDataset().to_dataframe()
     data = data.loc[idx[0, :, :, 0]].reset_index()
-
-
-    data = data.drop([
-      'prefix',
-      'scaling',
-      'PointProbability',
-      'ProbabilityWeight',
-      'ProbabilityWeight-steamer_capacity'
-    ], axis=1)
 
     dispatch_vars = list(filter(lambda x: "Dispatch__" in x, data.columns))
     fig = plt.figure()
