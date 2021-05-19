@@ -387,7 +387,7 @@ class Template(TemplateBase):
       out = OSs.findall('Print')[0]
       out.attrib['name'] = 'debug'
       out.find('source').text = 'mc'
-      # TODO plots for dispatch, etc
+      # handle dispatch plots for debug mode
       if case.debug['dispatch_plot']:
         out_plot = ET.SubElement(OSs, 'Plot', attrib={'name': 'dispatchPlot', 'subType': 'HERON.DispatchPlot'})
         out_plot_source = ET.SubElement(out_plot, 'source')

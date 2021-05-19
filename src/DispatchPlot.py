@@ -7,6 +7,7 @@
 import os
 import sys
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 from PluginBaseClasses.OutStreamPlotPlugin import PlotPlugin, InputTypes, InputData
@@ -21,7 +22,6 @@ class DispatchPlot(PlotPlugin):
       @ Out, specs, InputData.ParameterInput,
     """
     specs = super().getInputSpecification()
-    # specs.addSub(InputData.parameterInputFactory('variables', contentType=InputTypes.StringListType))
     specs.addSub(InputData.parameterInputFactory('source', contentType=InputTypes.StringType))
     return specs
 
@@ -33,7 +33,6 @@ class DispatchPlot(PlotPlugin):
     """
     super().__init__()
     self.printTag = 'HERON.DispatchPlot'
-    # self._vars = None
     self._sourceName = None
     self._source = None
 
@@ -42,8 +41,6 @@ class DispatchPlot(PlotPlugin):
     """
     super().handleInput(spec)
     for node in spec.subparts:
-      # if node.getName() == 'variables':
-      #   self._vars = node.value
       if node.getName() == 'source':
         self._sourceName = node.value
 
@@ -60,4 +57,24 @@ class DispatchPlot(PlotPlugin):
   def run(self):
     """
     """
-    print("I'm done")
+
+    idx = pd.IndexSlice
+    data = self._source.asDataset().to_dataframe()
+    data = data.loc[idx[0, :, :, 0]].reset_index()
+
+
+    data = data.drop([
+      'prefix',
+      'scaling',
+      'PointProbability',
+      'ProbabilityWeight',
+      'ProbabilityWeight-steamer_capacity'
+    ], axis=1)
+
+    dispatch_vars = list(filter(lambda x: "Dispatch__" in x, data.columns))
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    for var in dispatch_vars:
+      ax.plot(data['Time'], data[var])
+
+    fig.savefig("plot.png")
