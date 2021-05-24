@@ -90,4 +90,4 @@ class DispatchPlot(PlotPlugin):
         ax.set_xlabel('Time')
       ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-    fig.savefig("plot.png")
+    fig.savefig("debug_dispatch.png")
