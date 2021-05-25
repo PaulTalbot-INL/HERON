@@ -6,7 +6,7 @@
 """
 import os
 import sys
-from itertools import groupby
+import itertools as it
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -70,24 +70,37 @@ class DispatchPlot(PlotPlugin):
     self._source = src
 
 
+  @staticmethod
+  def _group_by(iterable):
+    """
+      @ In, iterable, list, a list of column names to group-by.
+      @ Out, gr, dict, a dictionary containing a mapping of grouped variable names.
+    """
+    gr = {}
+    for var in iterable:
+      key = var.split('__')[-1]
+      if key in gr.keys():
+        gr[key].append(var)
+      else:
+        gr[key] = [var]
+    return gr
+
   def run(self):
     """
     """
-    idx = pd.IndexSlice
-    data = self._source.asDataset().to_dataframe()
-    data = data.loc[idx[0, :, 10, 0]].reset_index()
+    df = self._source.asDataset().to_dataframe().reset_index()
+    dispatch_vars = list(filter(lambda x: "Dispatch__" in x, df.columns))
+    grouped_vars = self._group_by(dispatch_vars)
 
-    dispatch_vars = filter(lambda x: "Dispatch__" in x, data.columns)
-    grouped_resources = groupby(dispatch_vars, lambda x: x.split('__')[-1])
-
-    fig = plt.figure()
-    # TODO Add loop for Years and _ROM_Clusters
-    for i, (key, group) in enumerate(grouped_resources):
-      ax = fig.add_subplot(2,1,i+1)
-      for var in group:
-        # NOTE I don't think we can rely on 'Time' being the unique time-dependent variable.
-        ax.plot(data['Time'], data[var], label=var.replace('__', ' ').title())
-        ax.set_xlabel('Time')
-      ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-
-    fig.savefig("debug_dispatch.png")
+    for sample_id in df.iloc[:, 0].unique():
+      for macro_step in df.iloc[:, 2].unique():
+        dat = df[(df.iloc[:, 2] == macro_step) & (df.iloc[:, 0] == sample_id)]
+        fig = plt.figure()
+        for i, (key, group) in enumerate(grouped_vars.items()):
+          ax = fig.add_subplot(len(grouped_vars),1,i+1)
+          for var in group:
+            ax.plot(dat.iloc[:, 1], dat[var], label=var.replace('__', ' ').title())
+            ax.set_xlabel('Time')
+            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.savefig(f"debug_dispatch_{sample_id}_{macro_step}.png")
+        plt.clf()
