@@ -71,7 +71,7 @@ class DispatchPlot(PlotPlugin):
     super().initialize(stepEntities)
     src = self.findSource(self._sourceName, stepEntities)
     if src is None:
-      self.raiseAnError(IOError, f'Source DataObject {self._sourceName} was not found in the Step!')
+      self.raiseAnError(IOError, f'Source DataObject "{self._sourceName}" was not found in the Step!')
     self._source = src
 
   @staticmethod
@@ -116,6 +116,7 @@ class DispatchPlot(PlotPlugin):
               ax.set_title(key.title())
               ax.set_xlabel('Time')
               ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+          fig.tight_layout()
           fig.savefig(f"debug_dispatch_{sample_id}_{macro_step}_{cluster}.png")
           self.raiseAMessage(f'Saved figure to "debug_dispatch_{sample_id}_{macro_step}_{cluster}.png"')
           plt.clf()

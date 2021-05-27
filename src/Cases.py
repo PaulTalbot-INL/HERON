@@ -92,7 +92,8 @@ class Case(Base):
               optimization should include. \default{1}"""))
     debug.addSub(InputData.parameterInputFactory('dispatch_plot', contentType=InputTypes.BoolType,
         descr=r"""provides a dispatch plot after running through \xmlNode{inner_samples} and
-              \xmlNode{macro_steps} provided. \default{True}"""))
+              \xmlNode{macro_steps} provided. To prevent plotting output during debug mode set to "False".
+              \default{True}"""))
     input_specs.addSub(debug)
 
     input_specs.addSub(InputData.parameterInputFactory('num_arma_samples', contentType=InputTypes.IntegerType,
