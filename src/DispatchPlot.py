@@ -17,7 +17,6 @@ from PluginBaseClasses.OutStreamPlotPlugin import PlotPlugin, InputTypes, InputD
 plt.rc("figure", figsize=(12, 8), titleweight='bold')
 plt.rc(
   "axes",
-  #titlesize=25,
   titleweight="bold",
   labelsize=12,
   axisbelow=True,
@@ -54,6 +53,9 @@ class DispatchPlot(PlotPlugin):
 
   def handleInput(self, spec):
     """
+      Reads in data from the input file
+      @ In, spec, InputData.ParameterInput, input information
+      @ Out, None
     """
     super().handleInput(spec)
     for node in spec.subparts:
@@ -62,13 +64,15 @@ class DispatchPlot(PlotPlugin):
 
   def initialize(self, stepEntities):
     """
+      Set up plotter for each run
+      @ In, stepEntities, dict, entities from the Step
+      @ Out, None
     """
     super().initialize(stepEntities)
     src = self.findSource(self._sourceName, stepEntities)
     if src is None:
       self.raiseAnError(IOError, f'Source DataObject {self._sourceName} was not found in the Step!')
     self._source = src
-
 
   @staticmethod
   def _group_by(iterable):
@@ -87,20 +91,31 @@ class DispatchPlot(PlotPlugin):
 
   def run(self):
     """
+      Generate the plot
+      @ In, None
+      @ Out, None
     """
     df = self._source.asDataset().to_dataframe().reset_index()
     dispatch_vars = list(filter(lambda x: "Dispatch__" in x, df.columns))
     grouped_vars = self._group_by(dispatch_vars)
 
+    # Loop through RAVEN_sample_ID variable
     for sample_id in df.iloc[:, 0].unique():
+      # Loop through macro-step variable (i.e. YEAR)
       for macro_step in df.iloc[:, 2].unique():
-        dat = df[(df.iloc[:, 2] == macro_step) & (df.iloc[:, 0] == sample_id)]
-        fig = plt.figure()
-        for i, (key, group) in enumerate(grouped_vars.items()):
-          ax = fig.add_subplot(len(grouped_vars),1,i+1)
-          for var in group:
-            ax.plot(dat.iloc[:, 1], dat[var], label=var.replace('__', ' ').title())
-            ax.set_xlabel('Time')
-            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        fig.savefig(f"debug_dispatch_{sample_id}_{macro_step}.png")
-        plt.clf()
+        # Loop through _ROM_CLUSTER variable
+        for cluster in df.iloc[:, 3].unique():
+          fig = plt.figure()
+          dat = df[(df.iloc[:, 0] == sample_id) & (df.iloc[:, 2] == macro_step) & (df.iloc[:, 3] == cluster)]
+          for i, (key, group) in enumerate(grouped_vars.items()):
+            ax = fig.add_subplot(len(grouped_vars),1,i+1)
+            for var in group:
+              # Plot the micro-step variable on the x-axis (i.ee Time)
+              var_label = var.replace('__', ' ').title()
+              ax.plot(dat.iloc[:, 1], dat[var], label=var_label)
+              ax.set_title(key.title())
+              ax.set_xlabel('Time')
+              ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+          fig.savefig(f"debug_dispatch_{sample_id}_{macro_step}_{cluster}.png")
+          self.raiseAMessage(f'Saved figure to "debug_dispatch_{sample_id}_{macro_step}_{cluster}.png"')
+          plt.clf()
