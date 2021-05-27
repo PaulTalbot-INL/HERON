@@ -111,12 +111,13 @@ class DispatchPlot(PlotPlugin):
             ax = fig.add_subplot(len(grouped_vars),1,i+1)
             for var in group:
               # Plot the micro-step variable on the x-axis (i.ee Time)
-              var_label = var.replace('__', ' ').title()
+              var_label = var.split('__')[1].replace('_', ' ').title()
               ax.plot(dat.iloc[:, 1], dat[var], label=var_label)
               ax.set_title(key.title())
               ax.set_xlabel('Time')
               ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+          file_name = f"dispatch_id{sample_id}_y{macro_step}_c{cluster}.png"
           fig.tight_layout()
-          fig.savefig(f"debug_dispatch_{sample_id}_{macro_step}_{cluster}.png")
-          self.raiseAMessage(f'Saved figure to "debug_dispatch_{sample_id}_{macro_step}_{cluster}.png"')
+          fig.savefig(file_name)
+          self.raiseAMessage(f'Saved figure to "{file_name}"')
           plt.clf()
