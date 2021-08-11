@@ -129,6 +129,7 @@ class Template(TemplateBase):
     inner = self._modify_inner(inner, case, components, sources)
     outer = self._modify_outer(outer, case, components, sources)
     cash = self._modify_cash(cash, case, components, sources)
+    aaa
     return inner, outer, cash
 
   def writeWorkflow(self, templates, destination, run=False):
