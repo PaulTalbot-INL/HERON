@@ -9,6 +9,9 @@ import sys
 import abc
 import copy
 
+import pandas as pd
+import xarray as xr
+
 import _utils as hutils
 from base import Base
 
@@ -114,10 +117,7 @@ class Placeholder(Base):
       @ In, typ, str, type to check against
       @ Out, is_type, bool, True if matching request
     """
-    # maybe it's not anything we know about
-    if typ not in ['ARMA', 'Function', 'ROM']:
-      return False
-    return eval('isinstance(self, {})'.format(typ))
+    return typ == self._type
 
   def get_variable(self):
     """
@@ -375,12 +375,9 @@ class ROM(Placeholder):
     return result
 
 
-
-
-class Resampling_time(Placeholder):
+class CSV(Placeholder):
   """
-    Placeholder for signals coming from the ARMA
-    FIXME Probably note used any more, and should be removed.
+    Placeholder for values taken from a file.
   """
   @classmethod
   def get_input_specs(cls):
@@ -389,17 +386,32 @@ class Resampling_time(Placeholder):
       @ In, None
       @ Out, specs, InputData, specs
     """
-    specs = InputData.parameterInputFactory('Resampling_time', contentType=InputTypes.StringType, ordered=False, baseNode=None)
+    specs = InputData.parameterInputFactory('CSV', contentType=InputTypes.StringType,
+        ordered=False, baseNode=None,
+        descr=r"""This data source is a CSV file on disk.
+              The text of this node indicates the location of the CSV. This location is usually
+              relative with respect to the HERON XML input file; however, a full absolute path can
+              be used, or the path can be prepended with ``\%HERON\%'' to be relative to the
+              installation directory of HERON. The CSV should be formulated TODO figure out how to
+              explain this.""")
+    specs.addParam('name', param_type=InputTypes.StringType, required=True,
+        descr=r"""identifier for this data source in HERON and in the HERON input file. """)
+    specs.addParam('variable', param_type=InputTypes.StringListType, required=True,
+        descr=r"""provides the names of the variables from the file that will
+              be used in this analysis.""")
+    # TODO aliases for macro, micro, variable names?
     return specs
 
   def __init__(self, **kwargs):
     """
       Constructor.
-      @ In, kwargs, dict, passthrough arguments
+      @ In, kwargs, dict, passthrough args
       @ Out, None
     """
-    Placeholder.__init__(self, **kwargs)
-    self._type = 'Resampling_time'
+    super().__init__(**kwargs)
+    self._type = 'CSV'
+    self._data = None # data stored as an xarray dataset
+    # NOTE self._target_file (see parent) stores the file location and name
 
   def read_input(self, xml):
     """
@@ -407,10 +419,12 @@ class Resampling_time(Placeholder):
       @ In, xml, xml.etree.ElementTree.Element, input from user
       @ Out, None
     """
-    specs = Placeholder.read_input(self, xml)
+    specs = super().read_input(xml)
     self._var_names = specs.parameterValues['variable']
-
-
-
-
-
+    with open(self._target_file, 'r', encoding='utf-8-sig') as f:
+      headers = list(s.strip() for s in f.readline().split(','))
+    # sanity check
+    for var in self._var_names:
+      if var not in headers:
+        self.raiseAnError(KeyError, f'Variable {var} requested for "{self.name}" but not found in '+
+                                    f'"{self._target_file}! Found: {headers}')

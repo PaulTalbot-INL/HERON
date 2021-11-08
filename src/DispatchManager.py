@@ -86,11 +86,13 @@ class DispatchRunner:
       @ In, raven_dict, dict, RAVEN input dictionary
       @ Out, pass_vars, dict, variables to pass to dispatcher
     """
+    # variable for "time" discretization, if present
+    year_var = self._case.get_year_name()
+    time_var = self._case.get_time_name()
+    # investigate sources for required source information
     pass_vars = {}
-    history_structure = {}
-    # investigate sources for required ARMA information
     for source in self._sources:
-      if source.is_type('ARMA'):
+      if source.is_type('ARMA') or source.is_type('CSV'):
         # get structure of ARMA
         vars_needed = source.get_variable()
         for v in vars_needed:
@@ -107,9 +109,6 @@ class DispatchRunner:
       # NOTE this should ONLY BE POSSIBLE if no ARMAs are in use!
       pass
 
-    # variable for "time" discretization, if present
-    year_var = self._case.get_year_name()
-    time_var = self._case.get_time_name()
     time_vals = getattr(raven, time_var, None)
     if time_vals is not None:
       pass_vars[time_var] = time_vals

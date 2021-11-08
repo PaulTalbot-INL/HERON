@@ -62,11 +62,9 @@ def parse(xml, loc, messageHandler):
       for sub_xml in section:
         typ = sub_xml.tag
         if typ == 'CSV':
-          raise NotImplementedError('Not taking histories from CSV yet. If needed, let me know.')
-          new = Placeholders.CSV(messageHandler=messageHandler)
+          new = Placeholders.CSV(loc=loc, messageHandler=messageHandler)
         elif typ == 'ARMA':
           new = Placeholders.ARMA(loc=loc, messageHandler=messageHandler)
-          #print("THIS IS INPUT LOADER")
         elif typ == 'Function':
           new = Placeholders.Function(loc=loc, messageHandler=messageHandler)
         elif typ == 'ROM':
