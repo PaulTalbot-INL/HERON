@@ -9,6 +9,8 @@ import sys
 import importlib
 import xml.etree.ElementTree as ET
 
+import pandas as pd
+
 def get_heron_loc():
   """
     Return HERON location
@@ -129,6 +131,35 @@ def get_synthhist_structure(fpath):
   structure['segments'] = {}
   return structure
 
+def get_csv_structure(fpath, macro_var, micro_var):
+  """
+    Extracts csv structure info from CSV file
+    @ In, fpath, str, full absolute path to CSV
+    @ In, macro_var, str, name of macro time variable (e.g. Year)
+    @ In, micro_var, str, name of micro time variable (e.g. Hour)
+    @ Out, structure, dict, derived structure from reading ROM XML
+  """
+  # load CSV data
+  # if multiyear, note macro details
+  data = pd.read_csv(fpath)
+  if macro_var in data.columns and micro_var in data.columns:
+    years = data[macro_var].values
+    data.set_index([macro_var, micro_var], inplace=True)
+  elif micro_var in data.columns:
+    years = [0]
+    data.set_index(micro_var)
+  # make light wrapper to treat as single cluster with all the data inside
+  structure = {'clusters': {}}
+  for year in years:
+    structure['clusters'][year]
+  # struct:    key: year:  [info for each cluster]
+  # -> year is 0
+  # -> one cluster, so list is length 1 with a single dictionary entry
+  structure = {'clusters': {0: [{'id': 0,
+                                 'represents': ['0'],
+                                 'indices': ['0', '?']
+                                }]}}
+  TODO
 
 if __name__ == '__main__':
   try:

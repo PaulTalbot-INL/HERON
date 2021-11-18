@@ -421,9 +421,9 @@ class CSV(Placeholder):
     """
     specs = super().read_input(xml)
     self._var_names = specs.parameterValues['variable']
+    # sanity check
     with open(self._target_file, 'r', encoding='utf-8-sig') as f:
       headers = list(s.strip() for s in f.readline().split(','))
-    # sanity check
     for var in self._var_names:
       if var not in headers:
         self.raiseAnError(KeyError, f'Variable {var} requested for "{self.name}" but not found in '+

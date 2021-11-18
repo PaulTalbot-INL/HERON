@@ -556,15 +556,29 @@ class DispatchRunner:
       @ Out, all_structure, dict, structure (multiyear, cluster/segments, etc) specifications
     """
     all_structure = {'details': {}, 'summary': {}}
+    # TODO we need a better way to synchronize (or error) the sources: ARMA, CSV, etc
+    # for now, try to get info from synthetic history, if available
+    found = False
     for source in self._sources:
-      # only need ARMA information, not Functions
-      if not source.is_type('ARMA'):
-        continue
-      structure = hutils.get_synthhist_structure(source._target_file)
-      all_structure['details'][source] = structure
-
-    # TODO check consistency between ROMs?
-    # for now, just summarize what we found -> take it from the first source
+      # try to get structure data from synth hist, if possible
+      if source.is_type('ARMA'):
+        structure = hutils.get_synthhist_structure(source._target_file)
+        all_structure['details'][source] = structure
+        found = True
+        break # TODO don't break if we want to collect all of them
+    # if there wasn't an ARMA to get data from, check for static source
+    if not found:
+      for source in self._sources:
+        if source.is_type('CSV'):
+          structure = hutils.get_csv_structure(source._target_file)
+          all_structure['details'][source] = structure
+          found = True
+          break # TODO don't break if we want to collect all of them
+    # if neither found, we ... don't know our structure? We don't have boundary conditions?
+    # TODO can we work with this?
+    if not found:
+      raise RuntimeError('No ARMA or CSV found in sources! Temporal mapping is missing.')
+    # collect and summarize
     summary_info = next(iter(all_structure['details'].values()))
     interpolated = (summary_info['macro']['first'], summary_info['macro']['last'] + 1) if 'macro' in summary_info else (0, 1)
     # further, also take cluster structure from the first year only
