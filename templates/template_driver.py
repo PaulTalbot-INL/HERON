@@ -50,7 +50,7 @@ class Template(TemplateBase):
   TemplateBase.addNamingTemplates({'jobname'        : '{case}_{io}',
                                    'stepname'       : '{action}_{subject}',
                                    'variable'       : '{unit}_{feature}',
-                                   'dispatch'       : 'Dispatch__{component}__{resource}',
+                                   'dispatch'       : 'Dispatch__{component}__{tracker}__{resource}',
                                    'data object'    : '{source}_{contents}',
                                    'distribution'   : '{unit}_{feature}_dist',
                                    'ARMA sampler'   : '{rom}_sampler',
@@ -253,10 +253,10 @@ class Template(TemplateBase):
       group = var_groups.find(".//Group[@name='GRO_outer_debug_dispatch']")
       for component in components:
         name = component.name
-        interaction = component.get_interaction()
-        for resource in interaction.get_resources():
-          var_name = self.namingTemplates['dispatch'].format(component=name, resource=resource)
-          self._updateCommaSeperatedList(group, var_name)
+        for tracker in component.get_tracking_vars():
+          for resource in component.get_resources():
+            var_name = self.namingTemplates['dispatch'].format(component=name, tracker=tracker, resource=resource)
+            self._updateCommaSeperatedList(group, var_name)
       # -> synthetic histories?
       group = var_groups.find(".//Group[@name='GRO_outer_debug_synthetics']")
       for source in sources:
@@ -400,6 +400,11 @@ class Template(TemplateBase):
         out_plot = ET.SubElement(OSs, 'Plot', attrib={'name': 'dispatchPlot', 'subType': 'HERON.DispatchPlot'})
         out_plot_source = ET.SubElement(out_plot, 'source')
         out_plot_source.text = 'dispatch'
+        out_plot_macro = ET.SubElement(out_plot, 'macro_variable')
+        out_plot_macro.text = case.get_year_name()
+        out_plot_micro = ET.SubElement(out_plot, 'micro_variable')
+        out_plot_micro.text = case.get_time_name()
+
 
   def _modify_outer_samplers(self, template, case, components):
     """
@@ -719,10 +724,11 @@ class Template(TemplateBase):
       else:
         raise NotImplementedError('Capacity from "{}" not implemented yet. Component: {}'.format(capacity, cap_name))
 
-      for resource in interaction.get_resources():
-        var_name = self.namingTemplates['dispatch'].format(component=name, resource=resource)
-        self._updateCommaSeperatedList(groups['init_disp'], var_name)
-        self._updateCommaSeperatedList(groups['full_dispatch'], var_name)
+      for tracker in component.get_tracking_vars():
+        for resource in component.get_resources():
+          var_name = self.namingTemplates['dispatch'].format(component=name, tracker=tracker, resource=resource)
+          self._updateCommaSeperatedList(groups['init_disp'], var_name)
+          self._updateCommaSeperatedList(groups['full_dispatch'], var_name)
 
   def _modify_inner_debug(self, template, case, components):
     """
