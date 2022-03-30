@@ -217,6 +217,7 @@ class Case(Base):
     optimizer = InputData.parameterInputFactory('optimization_settings',
                                                 descr=r"""node that defines the settings to be used for the optimizer in
                                                 the ``outer'' run.""")
+    ## metric
     metric_options = InputTypes.makeEnumType('MetricOptions', 'MetricOptionsType', list(cls.optimization_metrics_mapping.keys()))
     desc_metric_options = r"""determines the statistical metric (calculated by RAVEN BasicStatistics
                           or EconomicRatio PostProcessors) from the ``inner'' run to be used as the
@@ -251,6 +252,7 @@ class Case(Base):
                                 ``valueAtRisk.'' \default{5.0}
                               \end{itemize}""")
     optimizer.addSub(metric)
+    ## min/max type
     type_options = InputTypes.makeEnumType('TypeOptions', 'TypeOptionsType',
                                            ['min', 'max'])
     desc_type_options = r"""determines whether the objective should be minimized or maximized.
@@ -264,6 +266,12 @@ class Case(Base):
     type_sub = InputData.parameterInputFactory('type', contentType=type_options, strictMode=True,
                                                descr=desc_type_options)
     optimizer.addSub(type_sub)
+    ## gradient history
+    grad_hist = InputData.parameterInputFactory('num_grads', contentType=InputTypes.IntegerType,
+        descr=r"""sets the number of prior gradients to use in influencing the next step size for
+               RAVEN optimization. This can help mitigate the so-called valley problem where the
+               optimal solution lies within a deep, narrow valley. \default{0}""")
+    optimizer.addSub(grad_hist)
     input_specs.addSub(optimizer)
 
     return input_specs
@@ -308,7 +316,7 @@ class Case(Base):
 
     self._time_discretization = None # (start, end, number) for constructing time discretization, same as argument to np.linspace
     self._Resample_T = None    # user-set increments for resources
-    self._optimization_settings = None # optimization settings dictionary for outer optimization loop
+    self.optimization_settings = None # optimization settings dictionary for outer optimization loop
 
     # clean up location
     self.run_dir = os.path.abspath(os.path.expanduser(self.run_dir))
@@ -366,7 +374,7 @@ class Case(Base):
         self.validator = typ()
         self.validator.read_input(vld)
       elif item.getName() == 'optimization_settings':
-        self._optimization_settings = self._read_optimization_settings(item)
+        self.optimization_settings = self._read_optimization_settings(item)
 
     # checks
     if self._mode is None:
@@ -468,7 +476,7 @@ class Case(Base):
           except KeyError:
             opt_settings[sub_name]['threshold'] = 0.05
       else:
-        # add other information to opt_settings dictionary (type is only information implemented)
+        # add other information to opt_settings dictionary (see input specs for allowable entries)
         opt_settings[sub_name] = sub.value
 
     return opt_settings

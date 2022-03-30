@@ -154,6 +154,9 @@ class CashFlowGroup:
         new = CashFlow(component=self._component)
         new.read_input(item)
         self._cash_flows.append(new)
+    # checks
+    if self._lifetime is None:
+      raise IOError(f'No "<lifetime>" provided in the "<economics>" node for component "{self.name}"!')
 
   def get_crossrefs(self):
     """

@@ -266,7 +266,7 @@ class Template(TemplateBase, Base):
     caps = var_groups[0]
     caps.text = ', '.join(f'{x.name}_capacity' for x in components if (x.get_capacity(None, raw=True).type not in ['Function', 'SyntheticHistory']))
     # outer results
-    if case._optimization_settings is not None:
+    if case.optimization_settings is not None:
       group_outer_results = var_groups.find(".//Group[@name='GRO_outer_results']")
       new_metric_outer_results = self._build_opt_metric_out_name(case)
       if (new_metric_outer_results != 'missing') and (new_metric_outer_results not in group_outer_results.text):
@@ -330,7 +330,7 @@ class Template(TemplateBase, Base):
     elif case.get_mode() == 'opt':
       self._remove_by_name(DOs, ['grid'])
     # update optimization settings if provided
-    if (case.get_mode() == 'opt') and (case._optimization_settings is not None):
+    if (case.get_mode() == 'opt') and (case.optimization_settings is not None):
       new_opt_objective = self._build_opt_metric_out_name(case)
       # check if the metric in 'opt_eval' needs to be changed
       opt_eval_output_node = DOs.find(".//PointSet[@name='opt_eval']").find('Output')
@@ -531,8 +531,10 @@ class Template(TemplateBase, Base):
     """
 
     # only modify if optimization_settings is in Case
-    if (case.get_mode() == 'opt') and (case._optimization_settings is not None):
+    if (case.get_mode() == 'opt') and (case.optimization_settings is not None):
       # TODO will the optimizer always be GradientDescent?
+      # -> for now yes, but this isn't guaranteed, and something we should change to allow
+      #    SPSA as a user option ...
       opt_node = template.find('Optimizers').find(".//GradientDescent[@name='cap_opt']")
       new_opt_objective = self._build_opt_metric_out_name(case)
       # swap out objective if necessary
@@ -543,11 +545,20 @@ class Template(TemplateBase, Base):
       sampler_init = opt_node.find('samplerInit')
       type_node = sampler_init.find('type')
       try:
-        type_node.text = case._optimization_settings['type']
+        type_node.text = case.optimization_settings['type']
       except KeyError:
         # type was not provided, so use the default value
-        metric_raven_name = case._optimization_settings['metric']['name']
-        type_node.text = case.optimization_metrics_mapping[metric_raven_name]['default']
+        if 'metric' in case.optimization_settings:
+          metric_raven_name = case.optimization_settings['metric'].get('name', 'expectedValue')
+          type_node.text = case.optimization_metrics_mapping[metric_raven_name]['default']
+      # grad histories
+      num_grads = case.optimization_settings['num_grads'] #.get('num_grads', None)
+      if num_grads is not None:
+        grad_hist = opt_node.find('stepSize').find('GradientHistory') # FIXME not always FiniteDifference!
+        num = grad_hist.find('window')
+        if num is None:
+          num = ET.SubElement(grad_hist, 'window')
+        num.text = f'{num_grads}'
 
   def _modify_outer_steps(self, template, case, components, sources):
     """
@@ -860,7 +871,7 @@ class Template(TemplateBase, Base):
     """
     # TODO currently only modifies if optimization settings has metric and/or type, add additional settings?
     # only modify if the mode is 'opt' and <optimization_settings> has anything to modify
-    if (case.get_mode() == 'opt') and (case._optimization_settings is not None):
+    if (case.get_mode() == 'opt') and (case.optimization_settings is not None):
       # optimization objective name provided (or 'missing')
       new_objective = self._build_opt_metric_out_name(case)
       # add optimization objective name to VariableGroups 'GRO_final_return' if not already there
@@ -870,15 +881,15 @@ class Template(TemplateBase, Base):
       # add optimization objective to PostProcessor list if not already there
       if new_objective != 'missing':
         pp_node = template.find('Models').find(".//PostProcessor[@name='statistics']")
-        raven_metric_name = case._optimization_settings['metric']['name']
+        raven_metric_name = case.optimization_settings['metric']['name']
         prefix = case.optimization_metrics_mapping[raven_metric_name]['prefix']
         if pp_node.find(raven_metric_name) is None:
           # add subnode to PostProcessor
-          if 'threshold' in case._optimization_settings['metric'].keys():
+          if 'threshold' in case.optimization_settings['metric'].keys():
             if raven_metric_name in ['valueAtRisk', 'expectedShortfall']:
-              threshold = str(case._optimization_settings['metric']['threshold'])
+              threshold = str(case.optimization_settings['metric']['threshold'])
             else:
-              threshold = case._optimization_settings['metric']['threshold']
+              threshold = case.optimization_settings['metric']['threshold']
               # TODO should NPV be the only metric available?
             new_node = xmlUtils.newNode(raven_metric_name, text='NPV',
                                         attrib={'prefix': prefix,
@@ -895,11 +906,11 @@ class Template(TemplateBase, Base):
           if prefix != subnode.attrib['prefix']:
             subnode.attrib['prefix'] = prefix
           # percentile has additional parameter to check
-          if 'percent' in case._optimization_settings['metric'].keys():
+          if 'percent' in case.optimization_settings['metric'].keys():
             # defaults to 5 or 95 percentile
-            if str(int(case._optimization_settings['metric']['percent'])) not in ['5', '95']:
+            if str(int(case.optimization_settings['metric']['percent'])) not in ['5', '95']:
               # update attribute
-              subnode.attrib['percent'] = str(case._optimization_settings['metric']['percent'])
+              subnode.attrib['percent'] = str(case.optimization_settings['metric']['percent'])
 
 
   ##### CASHFLOW #####
@@ -1177,16 +1188,16 @@ class Template(TemplateBase, Base):
     """
     try:
       # metric name in RAVEN
-      metric_raven_name = case._optimization_settings['metric']['name']
+      metric_raven_name = case.optimization_settings['metric']['name']
       # potential metric name to add to VariableGroups, DataObjects, Optimizers
       opt_out_metric_name = case.optimization_metrics_mapping[metric_raven_name]['prefix']
       # do I need to add a percent or threshold to this name?
       if metric_raven_name == 'percentile':
-        opt_out_metric_name += '_' + str(case._optimization_settings['metric']['percent'])
+        opt_out_metric_name += '_' + str(case.optimization_settings['metric']['percent'])
       elif metric_raven_name in ['valueAtRisk', 'expectedShortfall']:
-        opt_out_metric_name += '_' + str(case._optimization_settings['metric']['threshold'])
+        opt_out_metric_name += '_' + str(case.optimization_settings['metric']['threshold'])
       elif metric_raven_name in ['sortinoRatio', 'gainLossRatio']:
-        opt_out_metric_name += '_' + case._optimization_settings['metric']['threshold']
+        opt_out_metric_name += '_' + case.optimization_settings['metric']['threshold']
       # add target variable to name TODO should this be changeable from NPV?
       opt_out_metric_name += '_NPV'
     except (TypeError, KeyError):
