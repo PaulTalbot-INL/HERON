@@ -11,10 +11,10 @@
 
   <Case name="2_storage">
     <mode>opt</mode>
-    <debug/>
-    <num_arma_samples>20</num_arma_samples>
+    <!-- <debug/> -->
+    <num_arma_samples>10</num_arma_samples>
     <parallel>
-      <inner>2</inner>
+      <inner>10</inner>
     </parallel>
     <time_discretization>
       <year_variable>YEAR</year_variable>
@@ -23,7 +23,7 @@
       <num_steps>24</num_steps>
     </time_discretization>
     <economics>
-      <ProjectTime>3</ProjectTime>
+      <ProjectTime>2</ProjectTime>
       <DiscountRate>0.08</DiscountRate>
       <tax>0.1</tax>
       <inflation>0.1</inflation>
@@ -32,6 +32,9 @@
     <dispatcher>
       <pyomo/>
     </dispatcher>
+    <optimization_settings>
+      <num_grads>4</num_grads>
+    </optimization_settings>
   </Case>
 
 
@@ -40,7 +43,7 @@
 
       <produces resource="electricity" dispatch="independent">
         <capacity resource="electricity">
-          <opt_bounds>10, 40</opt_bounds> <!-- GW -->
+          <opt_bounds debug_value="40">10, 40</opt_bounds> <!-- GW -->
         </capacity>
       </produces>
 
@@ -92,8 +95,8 @@
             <variable>batteries_capacity</variable>
           </driver>
           <reference_price>
-            <!-- 150 $/kWh * 1e6 kW/GW = 150e-6 $/GWh -->
-            <fixed_value>-150e-6</fixed_value>
+            <!-- 150 $/kWh * 1e6 kW/GW = 150e6 $/GWh -->
+            <fixed_value>-150e5</fixed_value>
           </reference_price>
         </CashFlow>
       </economics>
@@ -118,7 +121,7 @@
           </driver>
           <reference_price>
             <!-- ballpark $100/MWh -->
-            <fixed_value>100e3</fixed_value>
+            <fixed_value>100e5</fixed_value>
           </reference_price>
         </CashFlow>
       </economics>
