@@ -1,0 +1,94 @@
+<?xml version="1.0" ?>
+<Simulation verbosity="debug">
+  <RunInfo>
+    <WorkingDir>data</WorkingDir>
+    <Sequence>load, train, meta, serialize</Sequence>
+  </RunInfo>
+
+  <Files>
+    <Input name="input">Data.csv</Input>
+    <Input name="pk">../synth_nyiso.pk</Input>
+  </Files>
+
+  <Steps>
+    <IOStep name="load">
+      <Input class="Files" type="">input</Input>
+      <Output class="DataObjects" type="HistorySet">input</Output>
+    </IOStep>
+
+    <RomTrainer name="train">
+      <Input class="DataObjects" type="HistorySet">input</Input>
+      <Output class="Models" type="ROM">synth_rom</Output>
+    </RomTrainer>
+
+    <IOStep name="meta">
+      <Input class="Models" type="ROM">arma</Input>
+      <Output class="DataObjects" type="DataSet">meta</Output>
+      <Output class="OutStreams" type="Print">romMeta</Output>
+    </IOStep>
+
+    <IOStep name="serialize">
+      <Input class="Models" type="ROM">arma</Input>
+      <Output class="Files" type="">pk</Output>
+    </IOStep>
+
+  </Steps>
+
+  <DataObjects>
+    <PointSet name="placeholder"/>
+
+    <HistorySet name="input">
+      <Input>scaling,YEAR</Input>
+      <Output>TOTALLOAD,WIND,SOLAR,HOUR</Output>
+      <options>
+        <pivotParameter>HOUR</pivotParameter>
+      </options>
+    </HistorySet>
+
+    <DataSet name="meta"/>
+  </DataObjects>
+
+  <Models>
+    <ROM name="synth_rom" subType="ARMA">
+      <pivotParameter>HOUR</pivotParameter>
+      <Features>scaling</Features>
+      <Target>TOTALLOAD,WIND,SOLAR,HOUR</Target>
+      <P>1</P>
+      <Q>0</Q>
+      <Fourier>24, 12</Fourier>
+      <SpecificFourier variables='TOTALLOAD,WIND'>
+        <periods>8760, 4380, 2920, 2190, 438, 168, 24, 12, 6, 3</periods>
+      </SpecificFourier>
+      <ZeroFilter>SOLAR</ZeroFilter>
+      <outTruncation domain='positive'>SOLAR</outTruncation>
+      <preserveInputCDF>True</preserveInputCDF>
+      <reseedCopies>True</reseedCopies>
+      <seed>42</seed>
+      <Segment grouping="interpolate">
+        <macroParameter>YEAR</macroParameter>
+        <Classifier class="Models" type="PostProcessor">classifier</Classifier>
+        <evalMode>full</evalMode>
+        <subspace pivotLength="24" shift="zero">HOUR</subspace>
+      </Segment>
+    </ROM>
+    <PostProcessor name="classifier" subType="DataMining">
+      <KDD labelFeature="labels" lib="SciKitLearn">
+        <Features>TOTALLOAD</Features>
+        <SKLtype>cluster|KMeans</SKLtype>
+        <n_clusters>8</n_clusters>
+        <tol>1E-12</tol>
+        <init>k-means++</init>
+        <random_state>3</random_state>
+        <precompute_distances>True</precompute_distances>
+      </KDD>
+    </PostProcessor>
+  </Models>
+
+  <OutStreams>
+    <Print name="romMeta">
+      <type>csv</type>
+      <source>meta</source>
+    </Print>
+  </OutStreams>
+
+</Simulation>

@@ -1,0 +1,95 @@
+<?xml version="1.0" ?>
+<Simulation verbosity="debug">
+  <RunInfo>
+    <WorkingDir>data</WorkingDir>
+    <Sequence>load_rom, sample, load_orig, plot</Sequence>
+    <batchSize>5</batchSize>
+    <internalParallel>True</internalParallel>
+    <!-- 50 samples, nope,   batchSize 1,  563.7 s (50 batches, ~11.2s/b, 11.2s/sample)-->
+    <!-- 50 samples, nope,   batchSize 12, 580.5 s (~5 batches, ~48.0s/b, 11.6s/sample)-->
+    <!-- 50 samples, IntPar, batchSize 12, 178.5 s (~5 batches, ~35.7s/b,  3.6s/sample)-->
+    <!-- 50 samples, IntPar, batchSize 10, 169.6 s ( 5 batches, ~33.9s/b,  3.4s/sample)-->
+  </RunInfo>
+
+  <Files>
+    <Input name="input">Data.csv</Input>
+    <Input name="pk">../synth_nyiso.pk</Input>
+  </Files>
+
+  <Steps>
+    <IOStep name="load_rom">
+      <Input class="Files" type="">pk</Input>
+      <Output class="Models" type="ROM">synth_rom</Output>
+    </IOStep>
+
+    <MultiRun name="sample">
+      <Input class="DataObjects" type="PointSet">placeholder</Input>
+      <Model class="Models" type="ROM">synth_rom</Model>
+      <Sampler class="Samplers" type="MonteCarlo">mc</Sampler>
+      <Output class="DataObjects" type="DataSet">synth</Output>
+      <Output class="OutStreams" type="Print">synth</Output>
+    </MultiRun>
+
+    <IOStep name="load_orig">
+      <Input class="Files" type="">input</Input>
+      <Output class="DataObjects" type="HistorySet">orig</Output>
+    </IOStep>
+
+    <IOStep name="plot">
+      <Input class="DataObjects" type="HistorySet">synth</Input>
+      <Input class="DataObjects" type="HistorySet">orig</Input>
+      <Output class="OutStreams" type="Print">synth</Output>
+      <Output class="OutStreams" type="Plot">cloud</Output>
+    </IOStep>
+
+  </Steps>
+
+  <DataObjects>
+    <PointSet name="placeholder"/>
+
+    <DataSet name="synth">
+      <Input>scaling</Input>
+      <Output>TOTALLOAD,WIND,SOLAR</Output>
+      <Index var="YEAR">TOTALLOAD,WIND,SOLAR</Index>
+      <Index var="HOUR">TOTALLOAD,WIND,SOLAR</Index>
+    </DataSet>
+
+    <HistorySet name="orig">
+      <Input>scaling,YEAR</Input>
+      <Output>TOTALLOAD,WIND,SOLAR,HOUR</Output>
+      <options>
+        <pivotParameter>HOUR</pivotParameter>
+      </options>
+    </HistorySet>
+  </DataObjects>
+
+  <Models>
+    <ROM name="synth_rom" subType="pickledROM">
+      <clusterEvalMode>full</clusterEvalMode>
+    </ROM>
+  </Models>
+
+  <Samplers>
+    <MonteCarlo name="mc">
+      <samplerInit>
+        <limit>50</limit>
+        <initialSeed>42</initialSeed>
+      </samplerInit>
+      <constant name="scaling">1.0</constant>
+    </MonteCarlo>
+  </Samplers>
+
+  <OutStreams>
+    <Print name="synth">
+      <type>csv</type>
+      <source>synth</source>
+    </Print>
+    <Plot name="cloud" subType="SyntheticCloud">
+      <training>orig</training>
+      <samples>synth</samples>
+      <macroParam>YEAR</macroParam>
+      <microParam>HOUR</microParam>
+      <variables>TOTALLOAD</variables>
+    </Plot>
+  </OutStreams>
+</Simulation>
