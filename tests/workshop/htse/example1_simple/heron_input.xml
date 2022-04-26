@@ -11,9 +11,9 @@
 
   <Case name="1_simple">
     <mode>opt</mode>
-    <num_arma_samples>20</num_arma_samples>
+    <num_arma_samples>5</num_arma_samples>
     <parallel>
-      <inner>2</inner>
+      <inner>5</inner>
     </parallel>
     <time_discretization>
       <year_variable>YEAR</year_variable>
@@ -39,7 +39,7 @@
 
       <produces resource="electricity" dispatch="independent">
         <capacity resource="electricity">
-          <opt_bounds>10, 40</opt_bounds> <!-- GW -->
+          <opt_bounds>10, 100</opt_bounds> <!-- GW -->
         </capacity>
       </produces>
 
@@ -110,7 +110,7 @@
   </Components>
 
   <DataGenerators>
-    <ARMA name='synth' variable="TOTALLOAD">../arma_202112_nyiso_def.pk</ARMA>
+    <ARMA name='synth' variable="TOTALLOAD">../example0_SynthHist/synth_nyiso.pk</ARMA>
   </DataGenerators>
 
 </HERON>

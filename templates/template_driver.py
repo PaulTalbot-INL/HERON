@@ -22,7 +22,7 @@ sys.path.pop()
 
 # get raven location
 RAVEN_LOC = os.path.abspath(os.path.join(hutils.get_raven_loc(), "ravenframework"))
-CF_LOC = hutils.get_cashflow_loc(raven_path=RAVEN_LOC)
+CF_LOC = hutils.get_cashflow_loc()
 if CF_LOC is None:
   raise RuntimeError('TEAL has not been found!\n' +
                      f'Check TEAL installation for the RAVEN at "{RAVEN_LOC}"')
@@ -269,7 +269,7 @@ class Template(TemplateBase, Base):
     # Add component opt vars
     for comp in components:
       comp_cap_type = comp.get_capacity(None, raw=True).type
-      if comp_cap_type  not in ['Function', 'ARMA']:
+      if comp_cap_type  not in ['Function', 'SyntheticHistory']:
         var_list.append(f'{comp.name}_capacity')
 
     # Add dispatch opt vars
@@ -435,7 +435,6 @@ class Template(TemplateBase, Base):
     # if debug, grab the dispatch output instead of the summary
     if case.debug['enabled']:
       raven.find('outputDatabase').text = 'disp_full'
-
 
   def _modify_outer_outstreams(self, template, case, components, sources):
     """

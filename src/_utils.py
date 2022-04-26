@@ -47,9 +47,15 @@ def get_cashflow_loc(raven_path=None):
   """
   if raven_path is None:
     raven_path = get_raven_loc()
-  plugin_handler_dir = path.join(raven_path, '..', 'scripts')
+  plugin_handler_dir = path.join(raven_path, 'scripts')
   sys.path.append(plugin_handler_dir)
-  plugin_handler = importlib.import_module('plugin_handler')
+  try:
+    plugin_handler = importlib.import_module('plugin_handler')
+  except ModuleNotFoundError:
+    msg = '"plugin_handler" not found using the following paths: ' +\
+        f'\n  raven: "{raven_path}"' +\
+        f'\n  plugin_handler: "{plugin_handler_dir}"'
+    raise ModuleNotFoundError(msg)
   sys.path.pop()
   cf_loc = plugin_handler.getPluginLocation('TEAL')
   return cf_loc

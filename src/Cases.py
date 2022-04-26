@@ -397,7 +397,7 @@ class Case(Base):
         self.validator = typ()
         self.validator.read_input(vld)
       elif item.getName() == 'optimization_settings':
-        self._optimization_settings = self._read_optimization_settings(item)
+        self.optimization_settings = self._read_optimization_settings(item)
       elif item.getName() == 'dispatch_vars':
         for node in item.subparts:
           var_name = node.parameterValues['name']

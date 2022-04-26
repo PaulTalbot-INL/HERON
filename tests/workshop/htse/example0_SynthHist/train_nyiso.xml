@@ -22,13 +22,13 @@
     </RomTrainer>
 
     <IOStep name="meta">
-      <Input class="Models" type="ROM">arma</Input>
+      <Input class="Models" type="ROM">synth_rom</Input>
       <Output class="DataObjects" type="DataSet">meta</Output>
       <Output class="OutStreams" type="Print">romMeta</Output>
     </IOStep>
 
     <IOStep name="serialize">
-      <Input class="Models" type="ROM">arma</Input>
+      <Input class="Models" type="ROM">synth_rom</Input>
       <Output class="Files" type="">pk</Output>
     </IOStep>
 
@@ -75,7 +75,7 @@
       <KDD labelFeature="labels" lib="SciKitLearn">
         <Features>TOTALLOAD</Features>
         <SKLtype>cluster|KMeans</SKLtype>
-        <n_clusters>8</n_clusters>
+        <n_clusters>3</n_clusters>
         <tol>1E-12</tol>
         <init>k-means++</init>
         <random_state>3</random_state>
