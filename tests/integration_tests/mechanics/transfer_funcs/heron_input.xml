@@ -1,0 +1,170 @@
+<HERON>
+  <TestInfo>
+    <name>DebugMode</name>
+    <author>talbpaul</author>
+    <created>2023-10-19</created>
+    <description>
+      Tests advanced transfer functions. Assures that they are tested by
+      limiting the size of each converting component and having the source produce
+      enough for all of them.
+    </description>
+    <classesTested>HERON</classesTested>
+  </TestInfo>
+
+  <Case name="Transfers_Tests">
+    <mode>sweep</mode>
+    <debug>
+      <inner_samples>1</inner_samples>
+      <macro_steps>1</macro_steps>
+      <dispatch_plot>False</dispatch_plot>
+      <cashflow_plot>False</cashflow_plot>
+    </debug>
+    <num_arma_samples>1</num_arma_samples>
+    <time_discretization>
+      <time_variable>Time</time_variable>
+      <end_time>2</end_time>
+      <num_steps>21</num_steps>
+    </time_discretization>
+    <economics>
+      <ProjectTime>3</ProjectTime>
+      <DiscountRate>0.08</DiscountRate>
+      <tax>0.3</tax>
+      <inflation>0.02</inflation>
+      <verbosity>50</verbosity>
+    </economics>
+    <dispatcher>
+      <pyomo/>
+    </dispatcher>
+  </Case>
+
+  <Components>
+    <Component name="people">
+      <produces resource="labor" dispatch="fixed">
+        <capacity resource="labor">
+          <sweep_values debug_value="1000">1, 1000</sweep_values>
+        </capacity>
+      </produces>
+      <economics>
+        <lifetime>2</lifetime>
+      </economics>
+    </Component>
+
+    <Component name="contracts">
+      <produces resource="funding" dispatch="fixed">
+        <capacity resource="funding">
+          <sweep_values debug_value="1000">1, 1000</sweep_values>
+        </capacity>
+      </produces>
+      <economics>
+        <lifetime>2</lifetime>
+      </economics>
+    </Component>
+
+    <Component name="team_linear">
+      <produces resource="reports,stress" dispatch="independent">
+        <consumes>labor,funding</consumes>
+        <capacity resource="labor">
+          <fixed_value>-50</fixed_value>
+        </capacity>
+        <transfer>
+          <linear>
+            <!-- 1l + 2f -> 1r + 0.3s-->
+            <rate resource="labor">-1</rate>
+            <rate resource="funding">-2</rate>
+            <rate resource="reports">1</rate>
+            <rate resource="stress">0.3</rate>
+          </linear>
+        </transfer>
+      </produces>
+      <economics>
+        <lifetime>2</lifetime>
+      </economics>
+    </Component>
+
+    <!-- <Component name="gen_poly">
+      <produces resource="widgets" dispatch="independent">
+        <consumes>materials</consumes>
+        <capacity resource="materials">
+          <fixed_value>-50</fixed_value>
+        </capacity>
+        <transfer>
+          <poly>
+            <coeff resource="materials" o="2">0.05</coeff>
+            <coeff resource="materials" o="1">-5</coeff>
+            <coeff resource="materials" o="0">-1</coeff>
+            <rate resource="widgets">0.5</rate>
+          </poly>
+        </transfer>
+      </produces>
+      <economics>
+        <lifetime>2</lifetime>
+      </economics>
+    </Component> -->
+
+    <Component name="report_sink">
+      <demands resource="reports" dispatch="dependent">
+        <capacity>
+          <fixed_value>-2000</fixed_value>
+        </capacity>
+      </demands>
+      <economics>
+        <lifetime>2</lifetime>
+        <CashFlow name="deliver_report" type="repeating" taxable='True' inflation='none' mult_target='False'>
+          <driver>
+            <activity>reports</activity>
+          </driver>
+          <reference_price>
+            <fixed_value>-100</fixed_value>
+          </reference_price>
+        </CashFlow>
+      </economics>
+    </Component>
+
+    <Component name="stress_sink">
+      <demands resource="stress" dispatch="dependent">
+        <capacity>
+          <fixed_value>-2000</fixed_value>
+        </capacity>
+      </demands>
+      <economics>
+        <lifetime>2</lifetime>
+        <CashFlow name="manage_stress" type="repeating" taxable='True' inflation='none' mult_target='False'>
+          <driver>
+            <activity>stress</activity>
+          </driver>
+          <reference_price>
+            <fixed_value>1</fixed_value>
+          </reference_price>
+        </CashFlow>
+      </economics>
+    </Component>
+
+    <Component name="labor_sink">
+      <demands resource="labor" dispatch="dependent">
+        <capacity>
+          <fixed_value>-2000</fixed_value>
+        </capacity>
+      </demands>
+      <economics>
+        <lifetime>2</lifetime>
+      </economics>
+    </Component>
+
+    <Component name="funding_sink">
+      <demands resource="funding" dispatch="dependent">
+        <capacity>
+          <fixed_value>-2000</fixed_value>
+        </capacity>
+      </demands>
+      <economics>
+        <lifetime>2</lifetime>
+      </economics>
+    </Component>
+
+  </Components>
+
+  <DataGenerators>
+    <ARMA name='Price' variable="Signal">%BASE_WORKING_DIR%/../../../ARMA/Sine/arma.pk</ARMA>
+  </DataGenerators>
+
+</HERON>
